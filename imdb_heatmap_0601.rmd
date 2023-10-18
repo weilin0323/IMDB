@@ -1,0 +1,278 @@
+---
+title: "🎭 IMDB電影評論 之"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+    css: etc/style.css
+
+runtime: shiny
+---
+
+```{r}
+rm(list=ls(all=T))
+# windowsFonts(consolas = windowsFont("consolas"))
+pacman::p_load(heatmaply,vcd, magrittr, readr, caTools, ggplot2, dplyr, plotly,tidyverse,highcharter,RColorBrewer, lubridate,showtext,readxl,shinyHeatmaply)
+pacman::p_load(flexdashboard,ggdark)
+
+load("data/imdb0425.rdata")
+load("data/ddT.rdata")
+```
+
+```{r}
+G = dd$g  %>% table %>% sort(dec=T)
+g16 = names(G)[1:16]
+
+# renderPlotly 中的 frame，要是連續的型態
+df = mutate(df, p = as.integer(as.character(p)))
+```
+
+
+💖 情緒
+================================================================
+
+```{r}
+txtHTML_emotion_col = c(
+  "<b>發現:</b> <br>
+  <ul>
+  <li>有該群情緒的電影類別，主要分布在左下角</li>
+  <li>最主要是：horror類別</li>
+  <li>次要是：crime, action, sci-fi, thriller, mystery 等類別的電影</li>
+  </ul>
+",
+
+  "<b>發現:</b> <br>	
+  <ul>
+  <li>有該群情緒的電影類別，主要分布在右上角</li>
+  <li>為 romance, family, animation, comedy, drama 類型的電影</li>
+  </ul>
+",
+
+  "<b>發現:</b> <br>	
+  <ul>
+  <li>anticipation這一情緒在各個電影類別中，除了war以外，其他分布得蠻平均的</li>
+  <li>猜測是因為war本身的電影結局、走向觀眾心中多少有的底，因此對於該類型的電影，較少有「期待」的成分在。</li>
+  </ul>
+")
+
+```
+
+Column 1 {.tabset data-width=400}
+-------------------------------------
+
+<div style="margin-left:10px;">
+
+<h6>對50,000部電影的800,000篇評論做情緒分析和話題分析，
+藉以比較各電影類別的評論之中是否有不同的情緒或話題樣態。</h6>
+
+<img src="etc/cm_nsysu.png" alt="NSYSU" width="80" height="80" align="center" style="margin-left: 30px">
+<h6>[國立中山大學管理學院](https://bap.cm.nsysu.edu.tw/) &ensp;|&ensp; 資管碩一&ensp; 王薇琳、資管大四&ensp; 廖仕雅</h6>
+
+</div>
+
+<hr>
+
+
+### 🏠說明  
+
+<b>為甚麼要column scaled 和 row scaled呢？</b>
+
+透過row scaled可以看到...
+<ul>
+  <li>給定同樣電影類別，不同類別情緒之間的比較。</li>
+  <li>在不同類型的電影之間，情緒相對分數並沒有太大的差異，主要是以正向的情緒為主，如此一來才會吸引觀眾看</li>
+  <li>這些是吸引觀眾去看電影的主要情緒。</li>
+</ul>
+
+透過column scaled可以看到...
+<ul>
+   <li>給定同樣情緒，不同類別電影之間的比較。</li>
+  <li>各電影類別的相對分數，在各情緒之間可以看得出<b>較明顯</b>的差異。</li>
+</ul>
+
+
+### 🌻發現(1)
+
+<ul>
+<li>有該群情緒的電影類別，主要分布在左下角</li>
+<li>最主要是：horror類別</li>
+<li>次要是：crime, action, sci-fi, thriller, mystery 等類別的電影</li>
+</ul>
+
+
+### (2)
+
+<ul>
+<li>有該群情緒的電影類別，主要分布在右上角</li>
+<li>為 romance, family, animation, comedy, drama 類型的電影</li>
+</ul>
+
+
+### (3)
+
+<ul>
+<li>anticipation這一情緒在各個電影類別中，除了war以外，其他分布得蠻平均的</li>
+<li>猜測是因為war本身的電影結局、走向觀眾心中多少有的底，因此對於該類型的電影，較少有「期待」的成分在。</li>
+</ul>
+
+
+
+
+
+
+Column 2 {data-width=600}
+-------------------------------------
+### <b>縱向標準化：</b> 在類別間可以觀察到三種不同的情緒樣態
+```{r}
+renderPlotly(
+  heatmaply(dd[,-1], scale="column",
+            fontsize_row=7, fontsize_col=7,
+            colors=c("skyblue","blue","pink","red")))
+```
+
+Column 3 {data-width=600}
+-------------------------------------
+### <b>橫向標準化：</b> 除恐怖片，各類別中的相對情緒成分很類似
+```{r}
+renderPlotly(
+  heatmaply(dd[,-1], scale="row",
+            fontsize_row=7, fontsize_col=7,
+            colors=c("skyblue","blue","pink","red")))
+```
+
+
+
+
+
+💋 話題 {data-orientation=rows}
+================================================================
+
+Row 1 {data-height=850}
+-------------------------------------
+### 前60個主題分數 (scaled) {data-height=800}
+```{r}
+ddT60 = ddT[,colnames(ddT) %in% t60 | colnames(ddT) == 'g']
+rownames(ddT60) = ddT60$g
+```
+
+```{r}
+renderPlotly(
+  heatmaply(
+    ddT60[,-1], scale="column",
+    fontsize_row=7, fontsize_col=7,
+    colors=c("skyblue","blue","pink","red")))
+```
+
+
+Row 2 {.tabset}
+-------------------------------------
+### 🗿 戰爭、歷史、傳記
+```{r}
+txtHTML_topic_1 = c("
+
+<b>群體發現:</b> <br>
+  <ol>
+  <li>該群偏向歷史性質，而歷史通常會跟戰爭相關，因此<b><font color='navyblue'>death</font></b>的討論度都<b><font color='navyblue'>高</font></b>。</li>
+  <li>雖然該群偏向歷史性質，但<b><font color='navyblue'>fun</font></b>的討論度卻比其他群都<b><font color='navyblue'>高</font></b>。</li>
+  </ol>
+  <b>類別發現:</b> <br>
+  <ol>
+  <li><b><font color='purple'>Biography(傳記電影)</font></b>相較War和History，在<b><font color='purple'>music</font></b>及<b><font color='purple'>dance</font></b>的討論度<b><font color='purple'>高</font></b>很多，可能該類電影較常使用較活潑動感的方式去呈現。</li>
+  <li>可能傳記類電影有許多主角為運動員，因此<b><font color='purple'>sport</font></b>的討論度<b><font color='purple'>高</font></b>。</li>
+  <li>另外，傳記型電影也著重在敘述、呈現人與人的互動，因此<b><font color='purple'>communication</font></b>、<b><font color='purple'>trust</font></b>及<b><font color='purple'>achievement</font></b>的討論度也較War和History<b><font color='purple'>高</font></b>。</li>
+  </ol>
+
+
+")
+
+renderUI({
+  HTML( txtHTML_topic_1 )  
+  })
+```
+
+----------------------------------
+### 🎭 劇情、愛情、家庭、喜劇
+```{r}
+txtHTML_topic_2 = c("<b>群體發現:</b> <br>
+  <ol>
+  <li>該群偏向愛情相關，在性別上的討論度<b><font color='navyblue'>sexual</font></b>會較其他群<b><font color='navyblue'>高</font></b>。</li>
+  <li>愛情類通常會與婚姻議題相關，因此該群在<b><font color='navyblue'>wedding</font></b>的討論度也都偏<b><font color='navyblue'>高</font></b>。</li>
+  </ol>
+  <b>類別發現:</b> <br>
+  <ol>
+  <li>其中<b><font color='purple'>Romance</font></b>著重正向的情感，在<b><font color='purple'>affection</font></b>及<b><font color='purple'>love</font></b>的討論度上會比另外 3類<b><font color='purple'>高</font></b>，而這類電影也擅長用活潑歡快等氣氛來渲染整部電影，所以<b><font color='purple'>music</font></b>及<b><font color='purple'>dance</font></b>的討論度也都是最<b><font color='purple'>高</font></b>的。</li>
+  </ol>
+")
+
+renderUI({
+  HTML( txtHTML_topic_2 )  
+  })
+```
+
+----------------------------------
+### 👮推理、懸疑驚悚、警匪、動作
+```{r}
+txtHTML_topic_3 = c("<b>群體發現:</b> <br>
+  <ol>
+  <li>該群不論是推理片或是動作片，通常都跟犯案有關，因此在<b><font color='navyblue'>Crime</font></b>的討論度上較其他群<b><font color='navyblue'>高</font></b>，而這類型電影也常會有打鬥要素，故<b><font color='navyblue'>violence</font></b>的成分相較其他群也較<b><font color='navyblue'>高</font></b>。</li>
+  </ol>
+  <b>類別發現:</b> <br>
+  <ol>
+  <li>而在<b><font color='purple'>警匪片（Crime）</font></b>中，犯人主要目的常跟金錢及白領有關，因此在<b><font color='purple'>money</font></b>、 <b><font color='purple'>business</font></b>跟<b><font color='purple'>white_collar_job</font></b>的討論度上較另外3類<b><font color='purple'>高</font></b>。</li>
+  </ol>
+")
+
+renderUI({
+  HTML( txtHTML_topic_3 )  
+  })
+```
+
+----------------------------------
+### 🧟️科幻、恐怖
+```{r}
+txtHTML_topic_4 = c("<b>群體發現:</b> <br>
+  <ol>
+  <li>該群電影類型較負面，因此這類討論度較高的話題圍繞在<b><font color='navyblue'>hate</font></b>、<b><font color='navyblue'>pain</font></b>、<b><font color='navyblue'>negative</font></b>還有<b><font color='navyblue'>emotional</font></b>方面。</li>
+  <li>另外這群的性質偏驚悚，音效的處理對電影的影響大，故討論的話題會跟<b><font color='navyblue'>hearing</font></b>有<b><font color='navyblue'>高度相關</font></b>。</li>
+  </ol>
+")
+
+renderUI({
+  HTML( txtHTML_topic_4 )  
+  })
+```
+
+----------------------------------
+### 🧚冒險、奇幻
+```{r}
+txtHTML_topic_5 = c("<b>群體發現:</b> <br>
+  <ol>
+  <li>該群與奇幻、冒險主題相關，因此話題也會圍繞在冒險周遭，像是：<b><font color='navyblue'>travel</font></b>、<b><font color='navyblue'>vacation</font></b>、<b><font color='navyblue'>attractive</font></b>等。</li>
+  <li>許多冒險片的故事內容會與救援他人相關，相較其他群，<b><font color='navyblue'>heroic</font></b>的討論度也會較<b><font color='navyblue'>高</font></b>。</li>
+  </ol>
+")
+
+renderUI({
+  HTML( txtHTML_topic_5 )  
+  })
+```
+
+----------------------------------
+### 🎠動畫
+```{r}
+txtHTML_topic_6 = c("<b>群體發現:</b> <br>
+  <ol>
+  <li>動畫片自成一群，且與其它群性質大不相同。動畫通常較少有與犯罪、搶劫相關主題，在<b><font color='navyblue'>money</font></b>、<b><font color='navyblue'>business</font></b>及<b><font color='navyblue'>crime</font></b>的討論度上相對<b><font color='navyblue'>低</font></b>很多。</li>
+  <li>動畫片主要著重在畫面及音效上，因此大眾在<b><font color='navyblue'>art</font></b>跟<b><font color='navyblue'>listen</font></b>上的討論度會較<b><font color='navyblue'>高</font></b>。</li>
+  </ol>
+")
+
+renderUI({
+  HTML( txtHTML_topic_6 )  
+  })
+```
+
+
+
+
